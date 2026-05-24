@@ -219,6 +219,8 @@ echo ============================================================
 echo [7/9] apksigner sign
 echo ============================================================
 echo [DEBUG] Keystore: %KEYSTORE%
+echo [DEBUG] APK alinhado (entrada): %ALIGNED%
+echo [DEBUG] APK assinado temporario (saida): %SIGNED_TMP%
 if not exist "%KEYSTORE%" (
   echo [INFO] debug.keystore nao existe. Gerando automaticamente...
   keytool -genkeypair -v -keystore "%KEYSTORE%" -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
@@ -228,6 +230,7 @@ if not exist "%KEYSTORE%" (
   )
 )
 if exist "%SIGNED_TMP%" del /q "%SIGNED_TMP%"
+if exist "%FINAL%" del /q "%FINAL%"
 apksigner sign --ks "%KEYSTORE%" --ks-key-alias androiddebugkey --ks-pass pass:android --key-pass pass:android --out "%SIGNED_TMP%" "%ALIGNED%"
 if errorlevel 1 (
   echo [ERRO] Comando apksigner sign falhou.
@@ -252,17 +255,29 @@ echo ============================================================
 echo [9/9] Publicacao final
 
 echo ============================================================
+echo [DEBUG] Copiando APK para raiz do projeto...
+echo [DEBUG] Origem: %SIGNED_TMP%
+echo [DEBUG] Destino: %FINAL%
 copy /y "%SIGNED_TMP%" "%FINAL%" >nul
 if errorlevel 1 (
   echo [ERRO] Falha ao copiar signed.apk para final.
-  echo [ERRO] Origem: %SIGNED_TMP%
-  echo [ERRO] Destino: %FINAL%
-  exit /b 1
+  echo [ERRO] Tentando fallback com comando move...
+  move /y "%SIGNED_TMP%" "%FINAL%" >nul
+  if errorlevel 1 (
+    echo [ERRO] Fallback move tambem falhou.
+    echo [ERRO] Origem: %SIGNED_TMP%
+    echo [ERRO] Destino: %FINAL%
+    exit /b 1
+  )
 )
 if not exist "%FINAL%" (
   echo [ERRO] APK final nao encontrado: %FINAL%
+  echo [DEBUG] Conteudo de %ROOT%:
+  dir /a "%ROOT%"
   exit /b 1
 )
 for %%A in ("%FINAL%") do echo [SUCESSO] APK final: %FINAL% ^| tamanho: %%~zA bytes
+echo [DEBUG] Conteudo da pasta raiz apos build:
+dir /a "%ROOT%"
 
 exit /b 0
