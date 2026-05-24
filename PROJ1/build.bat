@@ -33,6 +33,7 @@ set "KEYSTORE=%ROOT%\debug.keystore"
 set "JAVA_MAIN=%JAVA%\com\programadorzero\proj1\MainActivity.java"
 set "CLASS_MAIN=%CLASSES%\com\programadorzero\proj1\MainActivity.class"
 set "CLASS_RENDERER=%CLASSES%\com\programadorzero\proj1\MainActivity$NativeRenderer.class"
+set "D8_INPUTS="
 set "LIB_NATIVE="
 
 if not exist "%BUILD%" mkdir "%BUILD%"
@@ -83,20 +84,24 @@ if not exist "%CLASS_MAIN%" (
   echo [ERRO] Arquivo esperado ausente: %CLASS_MAIN%
   exit /b 1
 )
-if not exist "%CLASS_RENDERER%" (
-  echo [ERRO] Arquivo esperado ausente: %CLASS_RENDERER%
-  exit /b 1
+if exist "%CLASS_RENDERER%" (
+  echo [INFO] NativeRenderer encontrado: %CLASS_RENDERER%
+) else (
+  echo [INFO] NativeRenderer nao existe, continuando em modo JNI minimo
 )
 echo [DEBUG] Classes geradas com sucesso.
 
 echo ============================================================
 echo [3/9] d8
 echo ============================================================
-echo [DEBUG] Input classes: %CLASS_MAIN% e %CLASS_RENDERER%
+echo [DEBUG] Input class obrigatoria: %CLASS_MAIN%
 echo [DEBUG] Output dex dir: %DEX%
 if exist "%DEX%" rmdir /s /q "%DEX%"
 mkdir "%DEX%"
-d8 --output "%DEX%" "%CLASS_MAIN%" "%CLASS_RENDERER%"
+set D8_INPUTS="%CLASS_MAIN%"
+if exist "%CLASS_RENDERER%" set D8_INPUTS=%D8_INPUTS% "%CLASS_RENDERER%"
+echo [DEBUG] d8 inputs: !D8_INPUTS!
+d8 --output "%DEX%" !D8_INPUTS!
 if errorlevel 1 (
   echo [ERRO] Comando d8 falhou.
   exit /b 1
